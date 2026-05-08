@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Agent SDK Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Live workflow</p>
+          <h1 id="brand-name">Agent SDK Dashboard</h1>
+        </div>
+        <form id="token-form" class="token-form">
+          <input
+            id="token-input"
+            name="token"
+            type="password"
+            autocomplete="off"
+            placeholder="Access token"
+            aria-label="Access token"
+            required
+          />
+          <button type="submit">Connect</button>
+          <button type="button" id="clear-token">Reset</button>
+        </form>
+      </header>
+
+      <section class="status-strip" aria-label="Dashboard status">
+        <div>
+          <span class="label">Connection</span>
+          <strong id="connection-state">Offline</strong>
+        </div>
+        <div>
+          <span class="label">Active node</span>
+          <strong id="active-node">None</strong>
+        </div>
+        <div>
+          <span class="label">Events</span>
+          <strong id="event-count">0</strong>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="graph-panel">
+          <svg id="workflow-graph" viewBox="0 0 920 390" role="img" aria-label="Workflow graph"></svg>
+        </div>
+        <aside class="event-panel" aria-label="Event feed">
+          <div class="panel-header">
+            <h2>Events</h2>
+          </div>
+          <ol id="event-feed" class="event-feed"></ol>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="/static/app.js"></script>
+  </body>
+</html>

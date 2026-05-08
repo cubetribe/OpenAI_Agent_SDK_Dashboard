@@ -1,0 +1,41 @@
+services:
+  dashboard:
+    build: .
+    ports:
+      - "127.0.0.1:8090:8090"
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      DASHBOARD_REDIS_CHANNEL: ${DASHBOARD_REDIS_CHANNEL:-agent:traces}
+      DASHBOARD_AUTH_TOKEN: ${DASHBOARD_AUTH_TOKEN:?set DASHBOARD_AUTH_TOKEN}
+      DASHBOARD_DEVELOPER_AUTH_TOKEN: ${DASHBOARD_DEVELOPER_AUTH_TOKEN:-}
+      DASHBOARD_REPLAY_BUFFER_SIZE: ${DASHBOARD_REPLAY_BUFFER_SIZE:-50}
+      DASHBOARD_CORS_ORIGINS: ${DASHBOARD_CORS_ORIGINS:-http://localhost:8090}
+      DASHBOARD_CONFIG_PATH: ${DASHBOARD_CONFIG_PATH:-dashboard_service/config/default.dashboard.json}
+    depends_on:
+      redis:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  phoenix:
+    image: arizephoenix/phoenix:latest
+    profiles: ["debug"]
+    ports:
+      - "127.0.0.1:6006:6006"
+    restart: unless-stopped

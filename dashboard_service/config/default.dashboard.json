@@ -1,0 +1,74 @@
+{
+  "brand": {
+    "name": "Agent SDK Dashboard",
+    "accent": "#0f9f6e",
+    "warning": "#b7791f",
+    "danger": "#c2410c"
+  },
+  "nodes": [
+    {
+      "id": "node-ingress",
+      "label": "Incoming Request",
+      "kind": "source",
+      "x": 120,
+      "y": 190
+    },
+    {
+      "id": "node-orchestrator",
+      "label": "Orchestrator",
+      "kind": "agent",
+      "x": 340,
+      "y": 190
+    },
+    {
+      "id": "node-tool",
+      "label": "Tool Call",
+      "kind": "tool",
+      "x": 560,
+      "y": 120
+    },
+    {
+      "id": "node-knowledge",
+      "label": "Knowledge Lookup",
+      "kind": "tool",
+      "x": 560,
+      "y": 260
+    },
+    {
+      "id": "node-response",
+      "label": "Outbound Response",
+      "kind": "sink",
+      "x": 790,
+      "y": 190
+    }
+  ],
+  "edges": [
+    {
+      "from": "node-ingress",
+      "to": "node-orchestrator"
+    },
+    {
+      "from": "node-orchestrator",
+      "to": "node-tool"
+    },
+    {
+      "from": "node-orchestrator",
+      "to": "node-knowledge"
+    },
+    {
+      "from": "node-tool",
+      "to": "node-response"
+    },
+    {
+      "from": "node-knowledge",
+      "to": "node-response"
+    }
+  ],
+  "eventMappings": {
+    "ingress": "node-ingress",
+    "orchestrator": "node-orchestrator",
+    "tool": "node-tool",
+    "knowledge": "node-knowledge",
+    "response": "node-response"
+  }
+}
