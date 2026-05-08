@@ -51,6 +51,9 @@ The adapter emits the dashboard event contract:
 - `agent_id` when span data identifies an agent.
 - `tool_name` when span data identifies a function or tool call.
 - `span_type`, IDs, timestamps, duration, and error status when the SDK provides them.
+- safe structural metadata such as turn number, task name, model name, handoff endpoints, and
+  declared agent tool names. Raw inputs and outputs stay out of viewer payloads and are only
+  included in developer detail when explicitly enabled.
 
 ## Sensitive Data
 

@@ -9,7 +9,7 @@ def test_viewer_payload_redacts_developer_detail() -> None:
         span_id="span_123456789abcdef",
         session_id="raw-session-id",
         summary="Tool running",
-        metadata={"raw": "hidden"},
+        metadata={"raw": "hidden", "workflow_name": "Visible workflow"},
         detail={"prompt": "hidden"},
     )
 
@@ -18,7 +18,7 @@ def test_viewer_payload_redacts_developer_detail() -> None:
     assert payload["trace_id"] == "trace_123456"
     assert payload["span_id"] == "span_1234567"
     assert payload["session_id"].startswith("session-")
-    assert payload["metadata"] == {}
+    assert payload["metadata"] == {"workflow_name": "Visible workflow"}
     assert "detail" not in payload
 
 

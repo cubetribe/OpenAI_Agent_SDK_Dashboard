@@ -38,6 +38,9 @@ Expected result:
 
 - Connection state shows `Online`.
 - Nodes on the workflow graph change state as events arrive.
+- Runtime graph mode shows trace/span-derived cards and branch edges when configured with
+  `dashboard_service/config/runtime.dashboard.json`.
+- The workflow canvas zoom controls update the visible graph scale.
 - The event feed fills with neutral demo events.
 - Replay endpoint returns the recent events for new connections.
 

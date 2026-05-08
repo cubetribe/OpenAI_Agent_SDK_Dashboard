@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Agent SDK Dashboard</title>
-    <link rel="stylesheet" href="/static/styles.css" />
+    <link rel="stylesheet" href="/static/styles.css?v=20260508-n8n-runtime-zoom" />
   </head>
   <body>
     <main class="app-shell">
@@ -45,16 +45,39 @@
 
       <section class="workspace">
         <div class="graph-panel">
+          <div class="graph-toolbar" aria-label="Workflow zoom controls">
+            <button type="button" id="zoom-out" aria-label="Zoom out" title="Zoom out">-</button>
+            <output id="zoom-level" aria-label="Zoom level">100%</output>
+            <button type="button" id="zoom-in" aria-label="Zoom in" title="Zoom in">+</button>
+            <button type="button" id="zoom-reset" aria-label="Reset zoom" title="Reset zoom">1:1</button>
+            <button type="button" id="zoom-fit" aria-label="Fit workflow" title="Fit workflow">Fit</button>
+          </div>
           <svg id="workflow-graph" viewBox="0 0 920 390" role="img" aria-label="Workflow graph"></svg>
         </div>
         <aside class="event-panel" aria-label="Event feed">
           <div class="panel-header">
             <h2>Events</h2>
+            <form id="archive-form" class="archive-form">
+              <select id="archive-status" name="status" aria-label="Archive status">
+                <option value="">All</option>
+                <option value="error">Errors</option>
+                <option value="active">Active</option>
+                <option value="success">Success</option>
+              </select>
+              <input
+                id="archive-query"
+                name="q"
+                type="search"
+                placeholder="Search"
+                aria-label="Archive search"
+              />
+              <button type="submit">Search</button>
+            </form>
           </div>
           <ol id="event-feed" class="event-feed"></ol>
         </aside>
       </section>
     </main>
-    <script type="module" src="/static/app.js"></script>
+    <script type="module" src="/static/app.js?v=20260508-n8n-runtime-zoom"></script>
   </body>
 </html>

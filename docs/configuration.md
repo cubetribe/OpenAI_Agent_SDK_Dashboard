@@ -11,6 +11,7 @@
 | `DASHBOARD_REPLAY_BUFFER_SIZE` | `50` | Number of recent events replayed to new clients. |
 | `DASHBOARD_CORS_ORIGINS` | `http://localhost:8090` | Comma-separated browser origins. |
 | `DASHBOARD_CONFIG_PATH` | bundled default config | Path to workflow graph config. |
+| `DASHBOARD_EVENT_STORE_PATH` | `data/dashboard.db` | SQLite archive path. Compose sets `/data/dashboard.db`. |
 | `DASHBOARD_ENABLE_REDIS_SUBSCRIBER` | `true` | Disable for isolated tests or UI-only local runs. |
 | `DASHBOARD_ENABLE_DEV_TOOLS` | `false` | Enables developer-token-only local demo event injection. |
 | `DASHBOARD_TRACE_INCLUDE_DETAIL` | `false` | Publisher-side switch for forwarding span detail payloads. |
@@ -18,6 +19,11 @@
 ## Graph Config
 
 Graph config is JSON and should be tenant-specific at deploy time. Source code must stay generic.
+The repository ships two neutral examples:
+
+- `dashboard_service/config/default.dashboard.json`: hand-authored static graph.
+- `dashboard_service/config/runtime.dashboard.json`: runtime graph derived from live trace/span
+  events.
 
 Required top-level keys:
 
@@ -25,6 +31,17 @@ Required top-level keys:
 - `nodes`: agent and tool nodes.
 - `edges`: visual links between nodes.
 - `eventMappings`: mapping from event identifiers to graph nodes.
+
+Set `graphMode` to `runtime` for deployments that should derive the graph from live trace events
+instead of a hand-authored topology. Runtime graph mode uses trace IDs, span IDs, parent span IDs,
+agent names, tool names, and span types from the normalized event stream. Optional
+`runtimeGraph.maxTraces` controls how many recent traces are shown at once; use `1` for a focused
+"latest run" view. When agent span metadata includes declared tools or handoff targets, runtime
+graph mode can show those as dashed available branches even before an actual tool or handoff span is
+emitted.
+
+The browser canvas is zoomable in both configured and runtime graph modes. The visible controls are
+`-`, `+`, `1:1`, and `Fit`; users can also hold `Ctrl` or `Cmd` while scrolling over the graph panel.
 
 ## Token Roles
 
