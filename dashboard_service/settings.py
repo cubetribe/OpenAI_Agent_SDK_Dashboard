@@ -53,6 +53,10 @@ class Settings(BaseSettings):
         default=True,
         validation_alias=AliasChoices("DASHBOARD_ENABLE_REDIS_SUBSCRIBER"),
     )
+    enable_dev_tools: bool = Field(
+        default=False,
+        validation_alias=AliasChoices("DASHBOARD_ENABLE_DEV_TOOLS"),
+    )
 
     @field_validator("cors_origins", mode="before")
     @classmethod

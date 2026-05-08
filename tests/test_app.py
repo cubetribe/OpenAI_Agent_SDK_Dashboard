@@ -14,6 +14,7 @@ def test_health_endpoint() -> None:
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
+    assert response.json()["dev_tools_enabled"] is False
 
 
 def test_replay_requires_token() -> None:
@@ -77,10 +78,62 @@ def test_websocket_replays_buffer() -> None:
     assert message["events"][0]["event_type"] == "trace_start"
 
 
-def _app() -> FastAPI:
+def test_dev_event_endpoint_is_disabled_by_default() -> None:
+    client = TestClient(_app())
+
+    response = client.post(
+        "/api/dev/events",
+        headers={"Authorization": "Bearer developer-token"},
+        json={"event_type": "trace_start", "status": "active"},
+    )
+
+    assert response.status_code == 404
+
+
+def test_dev_event_endpoint_requires_developer_role() -> None:
+    client = TestClient(_app(enable_dev_tools=True))
+
+    response = client.post(
+        "/api/dev/events",
+        headers={"Authorization": "Bearer viewer-token"},
+        json={"event_type": "trace_start", "status": "active"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_dev_event_endpoint_broadcasts_to_websocket() -> None:
+    app = _app(enable_dev_tools=True)
+    client = TestClient(app)
+
+    with client.websocket_connect("/ws/dashboard?token=viewer-token") as websocket:
+        assert websocket.receive_json()["type"] == "replay"
+
+        response = client.post(
+            "/api/dev/events",
+            headers={"Authorization": "Bearer developer-token"},
+            json={
+                "event_type": "span_start",
+                "status": "active",
+                "node_id": "node-orchestrator",
+                "summary": "Orchestrator started",
+                "detail": {"hidden": True},
+            },
+        )
+
+        message = websocket.receive_json()
+
+    assert response.status_code == 200
+    assert message["type"] == "event"
+    assert message["event"]["node_id"] == "node-orchestrator"
+    assert "detail" not in message["event"]
+
+
+def _app(enable_dev_tools: bool = False) -> FastAPI:
     settings = Settings(
         auth_token=SecretStr("viewer-token"),
         developer_auth_token=SecretStr("developer-token"),
         enable_redis_subscriber=False,
+        enable_dev_tools=enable_dev_tools,
     )
     return create_app(settings)

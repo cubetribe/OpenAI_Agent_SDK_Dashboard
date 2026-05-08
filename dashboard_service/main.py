@@ -88,8 +88,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         CORSMiddleware,
         allow_origins=app_settings.cors_origins,
         allow_credentials=False,
-        allow_methods=["GET"],
-        allow_headers=["Authorization"],
+        allow_methods=["GET", "POST"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
@@ -107,6 +107,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         return role
 
+    async def developer_role(role: Annotated[ClientRole, Depends(http_role)]) -> ClientRole:
+        if role is not ClientRole.DEVELOPER:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Developer token required.",
+            )
+        return role
+
     @app.get("/", include_in_schema=False)
     async def index() -> FileResponse:
         return FileResponse(INDEX_FILE)
@@ -121,6 +129,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "status": "ok",
             "service": app_settings.service_name,
             "redis_subscriber_enabled": app_settings.enable_redis_subscriber,
+            "dev_tools_enabled": app_settings.enable_dev_tools,
             "buffer_size": len(event_buffer),
         }
 
@@ -131,6 +140,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/events/replay")
     async def replay_events(role: Annotated[ClientRole, Depends(http_role)]) -> dict[str, Any]:
         return {"role": role.value, "events": event_buffer.snapshot(role)}
+
+    if app_settings.enable_dev_tools:
+
+        @app.post("/api/dev/events")
+        async def inject_dev_event(
+            event: DashboardEvent,
+            _role: Annotated[ClientRole, Depends(developer_role)],
+        ) -> dict[str, Any]:
+            await handle_event(event)
+            return {
+                "status": "accepted",
+                "event": event.to_client_payload(ClientRole.DEVELOPER),
+            }
 
     @app.websocket("/ws/dashboard")
     async def dashboard_socket(websocket: WebSocket) -> None:
