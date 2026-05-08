@@ -6,6 +6,10 @@ The format follows Keep a Changelog and the project uses SemVer.
 
 ## [Unreleased]
 
+No changes yet.
+
+## [0.1.0] - 2026-05-08
+
 ### Added
 
 - Initial FastAPI/WebSocket dashboard skeleton.
@@ -13,9 +17,3 @@ The format follows Keep a Changelog and the project uses SemVer.
 - Redis Pub/Sub ingestion boundary.
 - Replay buffer and viewer/developer token roles.
 - Docker, CI, test, security, and governance baseline.
-
-## [0.1.0] - 2026-05-08
-
-### Added
-
-- Initial open-source project baseline.
