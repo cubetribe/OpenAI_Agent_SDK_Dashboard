@@ -95,6 +95,26 @@ When private customer terms are known locally, run:
 PRIVATE_TERM_PATTERNS="term-one;term-two" python scripts/check_public_terms.py
 ```
 
+## Local Live Test
+
+Run the dashboard without Redis and inject neutral demo events:
+
+```bash
+DASHBOARD_ENABLE_REDIS_SUBSCRIBER=false \
+DASHBOARD_ENABLE_DEV_TOOLS=true \
+DASHBOARD_AUTH_TOKEN=viewer-token \
+DASHBOARD_DEVELOPER_AUTH_TOKEN=developer-token \
+uvicorn dashboard_service.main:create_app --factory --reload --port 8090
+```
+
+Open `http://localhost:8090`, connect with `viewer-token`, then publish demo events:
+
+```bash
+python scripts/publish_demo_events.py --token developer-token
+```
+
+See [docs/live-testing.md](docs/live-testing.md).
+
 ## Security
 
 The default Compose file binds the dashboard to `127.0.0.1:8090` and keeps Redis off the host

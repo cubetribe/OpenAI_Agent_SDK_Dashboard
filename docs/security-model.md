@@ -13,6 +13,7 @@ only through a TLS reverse proxy with explicit access controls.
 - Session identifiers pseudonymized for viewer payloads.
 - Redis not exposed on the host network in the default Compose file.
 - Dashboard bound to localhost in the default Compose file.
+- Developer demo event injection disabled by default.
 - Local context folders ignored by Git.
 
 ## Deployment Checklist
@@ -21,9 +22,10 @@ only through a TLS reverse proxy with explicit access controls.
 2. Bind the service behind TLS.
 3. Keep Redis private to the Docker network or private subnet.
 4. Disable debug profiles in production.
-5. Verify reverse proxy logs do not retain sensitive query strings.
-6. Run the public-term scan before release.
-7. Enable GitHub branch protection and required CI checks.
+5. Keep `DASHBOARD_ENABLE_DEV_TOOLS=false` outside local smoke tests.
+6. Verify reverse proxy logs do not retain sensitive query strings.
+7. Run the public-term scan before release.
+8. Enable GitHub branch protection and required CI checks.
 
 ## Data Handling
 
