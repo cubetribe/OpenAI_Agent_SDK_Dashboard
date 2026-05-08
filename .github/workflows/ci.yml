@@ -35,7 +35,7 @@ jobs:
         run: ruff check .
 
       - name: Mypy
-        run: mypy dashboard_service scripts tests
+        run: mypy dashboard_service scripts tests examples
 
       - name: Pytest
         run: pytest

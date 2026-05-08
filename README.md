@@ -14,6 +14,7 @@ details behind a separate token.
 - Token-based viewer and developer access levels.
 - Static browser UI with a configurable workflow graph.
 - Redis Pub/Sub subscriber for trace-event ingestion.
+- OpenAI Agents SDK trace processor adapter for upstream applications.
 - Docker Compose setup with Redis kept internal by default.
 - CI, tests, security policy, contribution guide, and release rules.
 
@@ -67,11 +68,24 @@ Workflow graph labels, node IDs, and visual mappings live in
 [`dashboard_service/config/default.dashboard.json`](dashboard_service/config/default.dashboard.json).
 Tenant-specific deployments should provide their own config file through `DASHBOARD_CONFIG_PATH`.
 
+## Agents SDK Integration
+
+Register the dashboard trace processor in the upstream agent application:
+
+```python
+from dashboard_service.agents_sdk import register_dashboard_trace_processor
+
+register_dashboard_trace_processor()
+```
+
+Use `add_trace_processor()` semantics so the dashboard receives trace events without replacing the
+OpenAI Agents SDK default tracing exporter. See [docs/agents-sdk-integration.md](docs/agents-sdk-integration.md).
+
 ## Development Checks
 
 ```bash
 ruff check .
-mypy dashboard_service scripts tests
+mypy dashboard_service scripts tests examples
 pytest
 ```
 

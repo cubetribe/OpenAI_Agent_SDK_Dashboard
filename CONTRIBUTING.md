@@ -14,7 +14,7 @@ Run the focused checks before opening a pull request:
 
 ```bash
 ruff check .
-mypy dashboard_service scripts tests
+mypy dashboard_service scripts tests examples
 pytest
 ```
 
