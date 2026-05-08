@@ -6,7 +6,10 @@ The format follows Keep a Changelog and the project uses SemVer.
 
 ## [Unreleased]
 
-No changes yet.
+### Added
+
+- Redis publisher and OpenAI Agents SDK trace processor adapter for upstream integrations.
+- Neutral registration example and integration documentation.
 
 ## [0.1.0] - 2026-05-08
 

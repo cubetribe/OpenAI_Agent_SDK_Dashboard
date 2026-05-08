@@ -12,6 +12,7 @@
 | `DASHBOARD_CORS_ORIGINS` | `http://localhost:8090` | Comma-separated browser origins. |
 | `DASHBOARD_CONFIG_PATH` | bundled default config | Path to workflow graph config. |
 | `DASHBOARD_ENABLE_REDIS_SUBSCRIBER` | `true` | Disable for isolated tests or UI-only local runs. |
+| `DASHBOARD_TRACE_INCLUDE_DETAIL` | `false` | Publisher-side switch for forwarding span detail payloads. |
 
 ## Graph Config
 
@@ -32,3 +33,9 @@ Required top-level keys:
 Browser WebSockets use a token query parameter because browsers cannot set arbitrary authorization
 headers for native WebSocket connections. Production reverse proxies should avoid logging query
 strings or should terminate auth before forwarding to the dashboard.
+
+## Publisher Config
+
+Upstream agent applications use the same `REDIS_URL` and `DASHBOARD_REDIS_CHANNEL` variables as the
+dashboard service. Keep `DASHBOARD_TRACE_INCLUDE_DETAIL=false` unless trusted developers need raw
+diagnostic span data and the deployment has reviewed Redis access, logs, and browser access controls.

@@ -19,7 +19,7 @@ flowchart TD
 
 ## Event Flow
 
-1. The upstream agent application registers a trace processor.
+1. The upstream agent application registers the dashboard trace processor with the OpenAI Agents SDK.
 2. The processor maps trace and span lifecycle callbacks into normalized JSON events.
 3. Events are published to the configured Redis channel.
 4. The dashboard service subscribes, validates the payload, and stores the latest events in memory.
@@ -28,6 +28,7 @@ flowchart TD
 ## Runtime Boundaries
 
 - Redis is the event bus only. It is not the system of record.
+- The publisher adapter belongs in the upstream agent application process.
 - The replay buffer is intentionally short-lived and in memory.
 - The browser UI receives role-filtered payloads.
 - The service does not expose endpoints that mutate upstream workflows.
@@ -43,6 +44,9 @@ The internal event contract is intentionally small:
 - `session_id`: optional session identifier, pseudonymized for viewer clients.
 - `summary`: human-readable status line.
 - `detail`: developer-only diagnostic payload.
+
+The publisher omits diagnostic detail by default. Deployments that explicitly enable detail payloads
+must treat Redis and developer WebSocket clients as sensitive diagnostic surfaces.
 
 ## Deployment Model
 
