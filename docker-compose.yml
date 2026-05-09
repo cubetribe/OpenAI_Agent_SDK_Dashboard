@@ -11,6 +11,7 @@ services:
       DASHBOARD_REPLAY_BUFFER_SIZE: ${DASHBOARD_REPLAY_BUFFER_SIZE:-50}
       DASHBOARD_CORS_ORIGINS: ${DASHBOARD_CORS_ORIGINS:-http://localhost:8090}
       DASHBOARD_CONFIG_PATH: ${DASHBOARD_CONFIG_PATH:-dashboard_service/config/default.dashboard.json}
+      DASHBOARD_EVENT_STORE_PATH: ${DASHBOARD_EVENT_STORE_PATH:-/data/dashboard.db}
       DASHBOARD_ENABLE_DEV_TOOLS: ${DASHBOARD_ENABLE_DEV_TOOLS:-false}
     depends_on:
       redis:
@@ -18,6 +19,8 @@ services:
     read_only: true
     tmpfs:
       - /tmp
+    volumes:
+      - dashboard_data:/data
     security_opt:
       - no-new-privileges:true
     restart: unless-stopped
@@ -40,3 +43,6 @@ services:
     ports:
       - "127.0.0.1:6006:6006"
     restart: unless-stopped
+
+volumes:
+  dashboard_data:

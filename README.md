@@ -11,17 +11,20 @@ details behind a separate token.
 
 - FastAPI service with health, replay, and WebSocket endpoints.
 - In-memory replay buffer for the latest events.
+- SQLite event archive for searchable workflow history.
 - Token-based viewer and developer access levels.
-- Static browser UI with a configurable workflow graph.
+- Static browser UI with configurable and runtime-derived workflow graphs.
+- n8n-style zoomable workflow canvas with readable node cards and branch edges.
 - Redis Pub/Sub subscriber for trace-event ingestion.
 - OpenAI Agents SDK trace processor adapter for upstream applications.
-- Docker Compose setup with Redis kept internal by default.
+- Docker Compose setup with Redis kept internal and archive data persisted in a volume.
+- GitHub Container Registry publishing workflow for ready-to-pull images.
 - CI, tests, security policy, contribution guide, and release rules.
 
 ## Non-Goals
 
 - Mutating or controlling live agent workflows.
-- Storing long-term traces or customer data.
+- Long-term storage of raw customer prompts or contact data.
 - Replacing dedicated tracing tools for deep offline analysis.
 - Publishing tenant-specific prompts, contact data, or workflow context.
 
@@ -38,8 +41,8 @@ flowchart LR
 ```
 
 The upstream application publishes JSON trace events to Redis. The dashboard subscribes to the
-configured channel, normalizes the payload, stores the latest events in memory, and broadcasts each
-event to connected clients.
+configured channel, normalizes the payload, archives it in SQLite, stores the latest events in
+memory, and broadcasts each event to connected clients.
 
 ## Quick Start
 
@@ -49,6 +52,8 @@ docker compose up --build
 ```
 
 Open `http://localhost:8090`, enter the viewer token from `.env`, and connect.
+
+The Compose stack stores the searchable event archive in the `dashboard_data` Docker volume.
 
 For local development without Docker:
 
@@ -64,9 +69,37 @@ DASHBOARD_ENABLE_REDIS_SUBSCRIBER=false uvicorn dashboard_service.main:create_ap
 Runtime settings are environment-driven. See [.env.example](.env.example) and
 [docs/configuration.md](docs/configuration.md).
 
-Workflow graph labels, node IDs, and visual mappings live in
-[`dashboard_service/config/default.dashboard.json`](dashboard_service/config/default.dashboard.json).
-Tenant-specific deployments should provide their own config file through `DASHBOARD_CONFIG_PATH`.
+Workflow graph labels, node IDs, and visual mappings live in JSON config files. The bundled
+[`dashboard_service/config/default.dashboard.json`](dashboard_service/config/default.dashboard.json)
+is a hand-authored example. The bundled
+[`dashboard_service/config/runtime.dashboard.json`](dashboard_service/config/runtime.dashboard.json)
+enables runtime graph mode, where the browser derives nodes and edges from incoming trace/span
+events. Tenant-specific deployments should provide their own config file through
+`DASHBOARD_CONFIG_PATH`.
+
+The workflow canvas supports `-`, `+`, `1:1`, and `Fit` controls, plus `Ctrl`/`Cmd` + mouse wheel
+zooming over the graph panel.
+
+## Event Archive
+
+All normalized dashboard events are written to SQLite before being broadcast. The archive supports
+status, event type, node, trace, session, time range, and text filters through
+`GET /api/events/search`.
+
+The browser event panel uses this search API for archived event lookup while live updates continue
+over WebSocket.
+
+See [docs/event-archive.md](docs/event-archive.md).
+
+## Container Image
+
+After changes land on `main`, GitHub Actions publishes the Docker image to GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/cubetribe/openai-agent-sdk-dashboard:latest
+```
+
+See [docs/container-publishing.md](docs/container-publishing.md).
 
 ## Agents SDK Integration
 

@@ -1,8 +1,10 @@
+import json
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import AliasChoices, Field, SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -41,13 +43,17 @@ class Settings(BaseSettings):
         le=500,
         validation_alias=AliasChoices("DASHBOARD_REPLAY_BUFFER_SIZE"),
     )
-    cors_origins: list[str] = Field(
+    cors_origins: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:8090"],
         validation_alias=AliasChoices("DASHBOARD_CORS_ORIGINS"),
     )
     config_path: Path = Field(
         default=Path("dashboard_service/config/default.dashboard.json"),
         validation_alias=AliasChoices("DASHBOARD_CONFIG_PATH"),
+    )
+    event_store_path: Path = Field(
+        default=Path("data/dashboard.db"),
+        validation_alias=AliasChoices("DASHBOARD_EVENT_STORE_PATH"),
     )
     enable_redis_subscriber: bool = Field(
         default=True,
@@ -62,6 +68,9 @@ class Settings(BaseSettings):
     @classmethod
     def parse_cors_origins(cls, value: object) -> object:
         if isinstance(value, str):
+            stripped = value.strip()
+            if stripped.startswith("["):
+                return json.loads(stripped)
             return [item.strip() for item in value.split(",") if item.strip()]
         return value
 

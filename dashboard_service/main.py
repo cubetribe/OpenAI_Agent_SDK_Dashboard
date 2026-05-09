@@ -2,6 +2,7 @@ import asyncio
 import json
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -12,8 +13,15 @@ from fastapi.staticfiles import StaticFiles
 from starlette import status
 
 from dashboard_service.broker import RedisSubscriber
-from dashboard_service.events import ClientRole, DashboardEvent, EventBuffer, resolve_role
+from dashboard_service.events import (
+    ClientRole,
+    DashboardEvent,
+    EventBuffer,
+    EventStatus,
+    resolve_role,
+)
 from dashboard_service.settings import Settings, get_settings
+from dashboard_service.store import EventSearchQuery, SQLiteEventStore
 
 STATIC_DIR = Path(__file__).parent / "static"
 INDEX_FILE = STATIC_DIR / "index.html"
@@ -43,11 +51,14 @@ class ConnectionManager:
 def create_app(settings: Settings | None = None) -> FastAPI:
     app_settings = settings or get_settings()
     event_buffer = EventBuffer(maxlen=app_settings.replay_buffer_size)
+    event_store = SQLiteEventStore(app_settings.event_store_path)
+    event_buffer.extend(event_store.latest(app_settings.replay_buffer_size))
     manager = ConnectionManager(event_buffer)
     subscriber: RedisSubscriber | None = None
     subscriber_task: asyncio.Task[None] | None = None
 
     async def handle_event(event: DashboardEvent) -> None:
+        event_store.add(event)
         event_buffer.add(event)
         await manager.broadcast(event)
 
@@ -72,6 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 subscriber_task.cancel()
                 with suppress(asyncio.CancelledError):
                     await subscriber_task
+            event_store.close()
 
     app = FastAPI(
         title=app_settings.service_name,
@@ -82,6 +94,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.settings = app_settings
     app.state.event_buffer = event_buffer
+    app.state.event_store = event_store
     app.state.manager = manager
 
     app.add_middleware(
@@ -131,6 +144,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "redis_subscriber_enabled": app_settings.enable_redis_subscriber,
             "dev_tools_enabled": app_settings.enable_dev_tools,
             "buffer_size": len(event_buffer),
+            "event_store_path": str(app_settings.event_store_path),
         }
 
     @app.get("/api/config")
@@ -140,6 +154,43 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/events/replay")
     async def replay_events(role: Annotated[ClientRole, Depends(http_role)]) -> dict[str, Any]:
         return {"role": role.value, "events": event_buffer.snapshot(role)}
+
+    @app.get("/api/events/search")
+    async def search_events(
+        role: Annotated[ClientRole, Depends(http_role)],
+        status_filter: Annotated[list[EventStatus] | None, Query(alias="status")] = None,
+        event_type: Annotated[list[str] | None, Query()] = None,
+        node_id: str | None = None,
+        trace_id: str | None = None,
+        session_id: str | None = None,
+        q: str | None = None,
+        since: datetime | None = None,
+        until: datetime | None = None,
+        limit: Annotated[int, Query(ge=1, le=500)] = 100,
+        offset: Annotated[int, Query(ge=0)] = 0,
+    ) -> dict[str, Any]:
+        events, total = event_store.search(
+            EventSearchQuery(
+                status=status_filter,
+                event_type=event_type,
+                node_id=node_id,
+                trace_id=trace_id,
+                session_id=session_id,
+                text=q,
+                since=since,
+                until=until,
+                limit=limit,
+                offset=offset,
+            ),
+            role,
+        )
+        return {
+            "role": role.value,
+            "total": total,
+            "limit": limit,
+            "offset": offset,
+            "events": events,
+        }
 
     if app_settings.enable_dev_tools:
 

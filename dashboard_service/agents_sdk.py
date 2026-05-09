@@ -86,6 +86,7 @@ class AgentsDashboardTraceProcessor:
         span_type = _span_type(span_data)
         agent_id = _agent_id(span_data, span_type)
         tool_name = _tool_name(span_data, span_type)
+        label = _span_label(span_data, span_type, agent_id, tool_name)
         error = _extract_error(span)
 
         detail: dict[str, Any] = {}
@@ -108,12 +109,9 @@ class AgentsDashboardTraceProcessor:
             tool_name=tool_name,
             span_type=span_type,
             duration_ms=_duration_ms(span),
-            summary=_summary(event_type, agent_id or tool_name or span_type),
+            summary=_summary(event_type, label),
             message=_string(error),
-            metadata={
-                "span_data_type": span_type,
-                "name": _string(span_data.get("name")),
-            },
+            metadata=_span_metadata(span_data, span_type),
             detail=detail,
         )
 
@@ -152,6 +150,14 @@ def _span_data_mapping(span: object) -> dict[str, Any]:
 
 def _span_type(span_data: dict[str, Any]) -> str | None:
     explicit_type = _string(span_data.get("type") or span_data.get("span_type"))
+    if explicit_type == "custom":
+        data = _safe_mapping(span_data.get("data"))
+        sdk_span_type = _string(data.get("sdk_span_type"))
+        if sdk_span_type is not None:
+            return sdk_span_type
+        name = _string(span_data.get("name"))
+        if name in {"task", "turn"}:
+            return name
     if explicit_type is not None:
         return explicit_type
 
@@ -166,15 +172,77 @@ def _span_type(span_data: dict[str, Any]) -> str | None:
 def _agent_id(span_data: dict[str, Any], span_type: str | None) -> str | None:
     if span_type == "agent":
         return _string(span_data.get("name"))
+    data = _safe_mapping(span_data.get("data"))
+    if span_type == "turn":
+        return _string(data.get("agent_name") or span_data.get("agent_name"))
     return _string(
-        span_data.get("agent_id") or span_data.get("agent_name") or span_data.get("agent")
+        span_data.get("agent_id")
+        or span_data.get("agent_name")
+        or span_data.get("agent")
+        or data.get("agent_name")
     )
 
 
 def _tool_name(span_data: dict[str, Any], span_type: str | None) -> str | None:
     if span_type in {"function", "tool"}:
         return _string(span_data.get("name"))
+    if span_type == "mcp_tools":
+        return _string(span_data.get("server") or "mcp_tools")
     return _string(span_data.get("tool_name") or span_data.get("function_name"))
+
+
+def _span_label(
+    span_data: dict[str, Any],
+    span_type: str | None,
+    agent_id: str | None,
+    tool_name: str | None,
+) -> str | None:
+    data = _safe_mapping(span_data.get("data"))
+    if span_type == "task":
+        return _string(data.get("name") or span_data.get("name") or "task")
+    if span_type == "turn":
+        agent_name = _string(data.get("agent_name") or agent_id)
+        turn = _string(data.get("turn"))
+        if agent_name and turn:
+            return f"{agent_name} turn {turn}"
+        return agent_name or "turn"
+    if span_type == "handoff":
+        from_agent = _string(span_data.get("from_agent"))
+        to_agent = _string(span_data.get("to_agent"))
+        if from_agent and to_agent:
+            return f"{from_agent} to {to_agent}"
+    if span_type in {"generation", "response"}:
+        return _string(span_data.get("model") or span_type)
+    return agent_id or tool_name or _string(span_data.get("name")) or span_type
+
+
+def _span_metadata(span_data: dict[str, Any], span_type: str | None) -> dict[str, Any]:
+    data = _safe_mapping(span_data.get("data"))
+    turn = data.get("turn")
+    triggered = span_data.get("triggered")
+    metadata: dict[str, Any] = {
+        "span_data_type": span_type,
+        "name": _string(span_data.get("name")),
+        "sdk_span_type": _string(data.get("sdk_span_type")),
+        "task_name": _string(data.get("name")),
+        "turn": turn if isinstance(turn, int) else _string(turn),
+        "agent_name": _string(data.get("agent_name") or span_data.get("agent_name")),
+        "from_agent": _string(span_data.get("from_agent")),
+        "to_agent": _string(span_data.get("to_agent")),
+        "model": _string(span_data.get("model")),
+        "server": _string(span_data.get("server")),
+        "triggered": triggered if isinstance(triggered, bool) else None,
+    }
+
+    tools = span_data.get("tools")
+    if isinstance(tools, list) and all(isinstance(item, str) for item in tools):
+        metadata["tools"] = tools
+
+    handoffs = span_data.get("handoffs")
+    if isinstance(handoffs, list) and all(isinstance(item, str) for item in handoffs):
+        metadata["handoffs"] = handoffs
+
+    return {key: value for key, value in metadata.items() if value is not None}
 
 
 def _extract_error(item: object) -> object | None:
@@ -243,6 +311,9 @@ def _object_mapping(item: object) -> dict[str, Any]:
     to_dict = getattr(item, "to_dict", None)
     if callable(to_dict):
         return _safe_mapping(to_dict())
+    export = getattr(item, "export", None)
+    if callable(export):
+        return _safe_mapping(export())
     if isinstance(item, dict):
         return _safe_mapping(item)
     return _safe_mapping(vars(item)) if hasattr(item, "__dict__") else {}

@@ -1,3 +1,6 @@
+import tempfile
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import SecretStr
@@ -66,6 +69,63 @@ def test_replay_developer_role_keeps_detail() -> None:
     assert response.json()["events"][0]["detail"] == {"tokens": 10}
 
 
+def test_search_events_filters_errors_and_redacts_viewer_payload() -> None:
+    app = _app()
+    app.state.event_store.add(
+        DashboardEvent(
+            event_type="span_end",
+            status=EventStatus.ERROR,
+            node_id="node-tool",
+            trace_id="trace_private_123456789",
+            session_id="private-session",
+            summary="Tool lookup failed",
+            detail={"stack": "hidden"},
+        )
+    )
+    app.state.event_store.add(
+        DashboardEvent(
+            event_type="span_end",
+            status=EventStatus.SUCCESS,
+            node_id="node-response",
+            summary="Workflow completed",
+        )
+    )
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/events/search?status=error&q=lookup",
+        headers={"Authorization": "Bearer viewer-token"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total"] == 1
+    assert payload["events"][0]["status"] == "error"
+    assert payload["events"][0]["trace_id"] == "trace_privat"
+    assert payload["events"][0]["session_id"].startswith("session-")
+    assert "detail" not in payload["events"][0]
+
+
+def test_search_events_developer_payload_keeps_detail() -> None:
+    app = _app()
+    app.state.event_store.add(
+        DashboardEvent(
+            event_type="span_end",
+            status=EventStatus.ERROR,
+            detail={"stack": "visible"},
+        )
+    )
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/events/search?status=error",
+        headers={"Authorization": "Bearer developer-token"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["events"][0]["detail"] == {"stack": "visible"}
+
+
 def test_websocket_replays_buffer() -> None:
     app = _app()
     app.state.event_buffer.add(DashboardEvent(event_type="trace_start", status=EventStatus.ACTIVE))
@@ -130,10 +190,12 @@ def test_dev_event_endpoint_broadcasts_to_websocket() -> None:
 
 
 def _app(enable_dev_tools: bool = False) -> FastAPI:
+    event_store_path = Path(tempfile.mkdtemp()) / "events.db"
     settings = Settings(
         auth_token=SecretStr("viewer-token"),
         developer_auth_token=SecretStr("developer-token"),
         enable_redis_subscriber=False,
         enable_dev_tools=enable_dev_tools,
+        event_store_path=event_store_path,
     )
     return create_app(settings)

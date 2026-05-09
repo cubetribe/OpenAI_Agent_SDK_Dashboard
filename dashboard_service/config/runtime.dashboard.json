@@ -1,0 +1,17 @@
+{
+  "brand": {
+    "name": "Live Agent Workflows",
+    "accent": "#22c55e",
+    "warning": "#f59e0b",
+    "danger": "#dc2626"
+  },
+  "graphMode": "runtime",
+  "runtimeGraph": {
+    "enabled": true,
+    "maxTraces": 1
+  },
+  "viewBox": "0 0 1400 820",
+  "nodes": [],
+  "edges": [],
+  "eventMappings": {}
+}

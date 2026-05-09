@@ -57,7 +57,7 @@ class DashboardEvent(BaseModel):
         payload["span_id"] = _short_identifier(self.span_id)
         payload["parent_span_id"] = _short_identifier(self.parent_span_id)
         payload["session_id"] = _pseudonymize(self.session_id)
-        payload["metadata"] = {}
+        payload["metadata"] = _viewer_metadata(self.metadata)
         payload.pop("detail", None)
         return payload
 
@@ -161,3 +161,23 @@ def _pseudonymize(value: str | None) -> str | None:
         return None
     digest = sha256(value.encode("utf-8")).hexdigest()
     return f"session-{digest[:10]}"
+
+
+def _viewer_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+    safe_keys = {
+        "workflow_name",
+        "span_data_type",
+        "name",
+        "sdk_span_type",
+        "task_name",
+        "turn",
+        "agent_name",
+        "from_agent",
+        "to_agent",
+        "model",
+        "server",
+        "triggered",
+        "tools",
+        "handoffs",
+    }
+    return {key: value for key, value in metadata.items() if key in safe_keys}
