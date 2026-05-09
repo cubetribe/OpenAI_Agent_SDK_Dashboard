@@ -56,7 +56,7 @@ class ExportedTurnSpanData:
             "data": {
                 "sdk_span_type": "turn",
                 "turn": 2,
-                "agent_name": "Sparky Agents SDK",
+                "agent_name": "Example Agents SDK",
             },
         }
 
@@ -129,14 +129,14 @@ def test_trace_processor_maps_exported_agent_span_data() -> None:
         span_id="span_123",
         trace_id="trace_123",
         parent_id=None,
-        span_data=ExportedAgentSpanData(name="Sparky Agents SDK"),
+        span_data=ExportedAgentSpanData(name="Example Agents SDK"),
         started_at=datetime(2026, 5, 8, 10, 0, tzinfo=UTC),
     )
 
     processor.on_span_start(span)
 
     event = publisher.events[0]
-    assert event.agent_id == "Sparky Agents SDK"
+    assert event.agent_id == "Example Agents SDK"
     assert event.span_type == "agent"
 
 
@@ -154,9 +154,9 @@ def test_trace_processor_maps_exported_turn_span_data() -> None:
     processor.on_span_start(span)
 
     event = publisher.events[0]
-    assert event.agent_id == "Sparky Agents SDK"
+    assert event.agent_id == "Example Agents SDK"
     assert event.span_type == "turn"
-    assert event.summary == "Sparky Agents SDK turn 2 started"
+    assert event.summary == "Example Agents SDK turn 2 started"
     assert event.metadata["sdk_span_type"] == "turn"
     assert event.metadata["turn"] == 2
 
